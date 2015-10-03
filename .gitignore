@@ -61,3 +61,6 @@ env/
 
 #pycharm
 .idea/
+
+#compiled
+*.pyc
