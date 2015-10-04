@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from w_requests import WolframRequests
 from prettytable import PrettyTable
-
+import unicodedata
 
 class BaseAced():
 	"""
@@ -74,7 +74,7 @@ class SimpleOperation(BaseAced):
 		self.querys = [func]
 		self.set_requests(app_id)
 		self.answer = False
-		self.value = []
+		self.value = ""
 
 	def __str__(self):
 		if(self.answer):
@@ -123,4 +123,98 @@ class PathIntegral(BaseAced):
 		dt = self.wolfram_request[1].get_pod()[0].text.split(' = ')[1]
 		self.run_last(t,dt)
 		#self.value = self.wolfram_request[0].get_pod()[1].text
+
+class IntegralCauchyFormula(BaseAced):
+	"""
+	Calculates a integral with cauchy formula
+	"""
+
+	def __init__(self, numerator, denominator, app_id):
+		#"d/dz(-(2i-2)(z-3i-4)^(3)+(3i-1)z^(2)) at z =2i+5"
+		self.app_id = app_id
+		self.denominator = denominator
+		self.numerator = numerator
+		self.roots = []
+		self.querys = ["%s = 0" % (denominator)]
+		self.set_requests(app_id)
+		self.answer = False
+		self.value = ""
+
+	def __str__(self):
+		if(self.answer):
+			return "%s" % unicodedata.normalize('NFD', self.value).encode('ascii', 'ignore') 
+		return "An error ocurred"
+
+	def extra_runs(self, splited_n):
+		self.querys = []
+		self.wolfram_request = []
+		dicti = {}
+		dicti_rev = {}
+		not_splited = ""
+		for z in range(len(splited_n)):
+			not_splited += splited_n[z]
+		not_splited = not_splited.replace(' = 0','')
+		splited_n[-1] = splited_n[-1].replace(' = 0','')
+		for i in range(len(splited_n)):
+			dicti[splited_n[i]] = self.roots[i]
+			dicti_rev[self.roots[i]] = splited_n[i]
+		den_new = not_splited
+		for root in self.roots:
+			den_new = not_splited
+			alpha_d = den_new.replace (dicti_rev[root],"(1)")
+			self.querys.append("(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
+		self.set_requests(self.app_id)
+		super(IntegralCauchyFormula,self).run()
+		for wfr in self.wolfram_request:
+			for pod in wfr.get_pod():
+				self.value += "\n%s\n" % pod.title
+				for subpod in pod.subpods:
+					self.value += "%s\n%s\n" % (subpod.text, subpod.img.attrib['src'])
 		
+
+	def run (self):
+		super(IntegralCauchyFormula,self).run()
+		sols = ['Complex solutions', 'Real solutions', 'Complex solution', 'Real solution']
+		splited_n = self.wolfram_request[0].get_pod()[0].text.split(') (')
+		for i in range(len(splited_n)-1):
+			if i == 0:
+				splited_n[i] += ')'
+			else:
+				splited_n[i] = '(' + splited_n[i] + ')'
+		splited_n[-1] = '(' + splited_n[-1] 
+		for pod in self.wolfram_request[0].get_pod():
+			if pod.title in sols:
+				self.value += "\n%s\n" % pod.title
+				for subpod in pod.subpods:
+					self.roots.append(subpod.text.split(' = ')[1])
+					self.value += "%s\n%s\n" % (subpod.text, subpod.img.attrib['src'])
+		self.roots = list(reversed(self.roots))
+		self.extra_runs(splited_n)
+		#self.value = self.wolfram_request[0].get_pod()[4].text
+		self.answer = True
+
+
+
+class DerevativePoint(BaseAced):
+	"""
+	Calculates the derevative on a specific point
+	"""
+
+	def __init__(self, func, point, app_id):
+		#"d/dz(-(2i-2)(z-3i-4)^(3)+(3i-1)z^(2)) at z =2i+5"
+		self.func = func
+		self.querys = ["d/dz(%s) at z =%s" % (func,point)]
+		self.set_requests(app_id)
+		self.answer = False
+		self.value = ""
+
+	def __str__(self):
+		if(self.answer):
+			return "The answer is %s" % self.value 
+		return "An error ocurred"
+
+	def run (self):
+		super(DerevativePoint,self).run()
+		self.value = self.wolfram_request[0].get_pod()[1].text
+		self.answer = True
+
