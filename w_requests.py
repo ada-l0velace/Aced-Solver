@@ -1,5 +1,5 @@
 import wolframalpha
-from threading import Thread
+from threading import Thread, Lock
 
 class WolframRequests():
 	"""
@@ -25,3 +25,32 @@ class WolframRequests():
 
 	def join(self):
 		self.t.join()
+
+
+class AcedSolverRequests():
+	"""
+	Handles all Wolfram Requests Clients
+	"""
+
+	def __init__(self, clients):
+		self.clients = clients
+		self.t = []
+		self.mutex = Lock()
+
+	def request(self, client):
+		client.run()
+		with self.mutex:
+			print '--------------------------------------------------------------------------'
+			print client
+	def get_pod(self):
+		return self.response.pods
+
+	def run (self):
+		i = 0
+		for client in self.clients:
+			self.t.append(Thread(target=self.request, args=[client]))
+			self.t[i].start()
+			i += 1
+		for t in self.t:
+			t.join()
+		print 'Today was a great day for Science'

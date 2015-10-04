@@ -4,6 +4,20 @@ from prettytable import PrettyTable
 import unicodedata
 import re
 
+class bcolors:
+	"""
+	Class to use Colors in terminal
+	"""
+	HEADER = '\033[95m'
+	OKBLUE = '\033[94m'
+	OKGREEN = '\033[92m'
+	WARNING = '\033[93m'
+	FAIL = '\033[91m'
+	ENDC = '\033[0m'
+	BOLD = '\033[1m'
+	UNDERLINE = '\033[4m'
+
+
 class BaseAced():
 	"""
 	Base Class for all Aced Classes
@@ -20,6 +34,7 @@ class BaseAced():
 	def run (self):
 		i = 0
 		for query in self.querys:
+			print "%sCalculating %s %s" % (bcolors.OKBLUE,query, bcolors.ENDC)
 			self.wolfram_request[i].run(query)	
 			i += 1
 		for r in self.wolfram_request:
@@ -31,23 +46,28 @@ class Holomorph(BaseAced):
 	Checks if a function is Holomorph
 	"""
 
-	def __init__(self, func, app_id):
-		self.func = func
-		self.dudx = 'd/dx(Re(%s))' % func
-		self.dudy = 'd/dy(Re(%s))' % func
-		self.dvdx = 'd/dx(Im(%s))' % func
-		self.dvdy = 'd/dy(Im(%s))' % func
+	def __init__(self, real, imaginary, app_id):
+		self.app_id = app_id
+		self.func = "(%s) + (%s) i" % (real, imaginary)
+		self.real = real.replace('y', 't')
+		self.imaginary = imaginary.replace('y', 't')
+		self.dudx = 'D[%s,x]' % self.real
+		self.dudy = 'D[%s,t]' % self.real
+		self.dvdx = 'D[%s,x]' % self.imaginary
+		self.dvdy = 'D[%s,t]' % self.imaginary
 		self.querys = [self.dudx,self.dudy,self.dvdx,self.dvdy]
 		self.set_requests(app_id)
 		self.answer = False
 		self.matrix = ""
 
 	def __str__(self):
+		print 'Jacobiana'
+		print self.matrix
+		print ''
 		if(self.answer):
-			print self.matrix
-			return "The function %s is Holomorph\n" % self.func 
+			return bcolors.OKGREEN+"The function %s + (%s)i is Holomorph" % (self.real.replace('t', 'y'), self.imaginary.replace('t', 'y'))+bcolors.ENDC 
 
-		return "The function %s isn't Holomorph" % self.func
+		return bcolors.FAIL+"The function %s + (%s)i isn't Holomorph" % (self.real.replace('t', 'y'), self.imaginary.replace('t', 'y'))+bcolors.ENDC
 
 	def matrix_r(self, matrix):
 		p = PrettyTable()
@@ -57,13 +77,31 @@ class Holomorph(BaseAced):
 
 	def run (self):
 		super(Holomorph,self).run()
-		dudx = self.wolfram_request[0].get_pod()[4].text
-		dvdy = self.wolfram_request[3].get_pod()[4].text
-		dxdy = self.wolfram_request[1].get_pod()[4].text
-		dvdx = self.wolfram_request[2].get_pod()[4].text
-		self.matrix_r([[dudx,dxdy],[dvdx,dvdy]])
-		self.answer = dudx == dvdy and dxdy == '-%s' % dvdx
-
+		results = []
+		dd = []
+		wr_n = 0
+		for wr in self.wolfram_request:
+			for pod in wr.get_pod():
+				if pod.title == 'Alternate forms' or pod.title == 'Alternate form':
+					dd.append(pod.text)
+		self.wolfram_request = []
+		self.querys = ["(%s) == (%s)" % (dd[0],dd[3]), "(-1)(%s) == (%s)" % (dd[1],dd[2])]
+		self.set_requests(self.app_id)
+		super(Holomorph,self).run()
+		for wr in self.wolfram_request:
+			f = False	
+			for pod in wr.get_pod():
+				if pod.text == 'True':
+					results.append(pod.text)
+					f = True
+					break
+			if not f:
+				results.append('False')
+		if (results[0] == 'True' and results[1] == 'True'):
+			self.answer = True	
+		self.matrix_r([[dd[0],dd[1]],[dd[2],dd[3]]])
+		
+		
 
 class SimpleOperation(BaseAced):
 	"""
@@ -216,7 +254,7 @@ class IntegralCauchyFormula(BaseAced):
 
 
 
-class DerevativePoint(BaseAced):
+class DerivativePoint(BaseAced):
 	"""
 	Calculates the derevative on a specific point
 	"""
@@ -235,7 +273,7 @@ class DerevativePoint(BaseAced):
 		return "An error ocurred"
 
 	def run (self):
-		super(DerevativePoint,self).run()
+		super(DerivativePoint,self).run()
 		self.value = self.wolfram_request[0].get_pod()[1].text
 		self.answer = True
 
