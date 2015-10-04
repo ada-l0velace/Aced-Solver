@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from w_requests import WolframRequests
 from prettytable import PrettyTable
 import unicodedata
+import re
 
 class BaseAced():
 	"""
@@ -142,7 +143,7 @@ class IntegralCauchyFormula(BaseAced):
 
 	def __str__(self):
 		if(self.answer):
-			return "%s" % unicodedata.normalize('NFD', self.value).encode('ascii', 'ignore') 
+			return unicodedata.normalize('NFD', self.value).encode('ascii', 'ignore') 
 		return "An error ocurred"
 
 	def extra_runs(self, splited_n):
@@ -155,14 +156,34 @@ class IntegralCauchyFormula(BaseAced):
 			not_splited += splited_n[z]
 		not_splited = not_splited.replace(' = 0','')
 		splited_n[-1] = splited_n[-1].replace(' = 0','')
+		degrees = []
+		nr_d = []
+		if '^' in not_splited:
+			for i in range(len(splited_n)):
+				if ')^' in splited_n[i]:
+					nr_d.append(i)
+					degrees.append(int(re.sub('[!^]', '', splited_n[i].split('^')[1])))
+					print degrees[i]
 		for i in range(len(splited_n)):
 			dicti[splited_n[i]] = self.roots[i]
 			dicti_rev[self.roots[i]] = splited_n[i]
 		den_new = not_splited
+		i = 0
 		for root in self.roots:
+
 			den_new = not_splited
 			alpha_d = den_new.replace (dicti_rev[root],"(1)")
-			self.querys.append("(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
+			if i not in nr_d:
+				self.querys.append("(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
+			elif degrees[i]-1 == 0:
+				self.querys.append("(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
+			elif degrees[i]-1 == 1:
+				print "d^/dz(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root)
+				self.querys.append("d/dz(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
+			elif degrees[i]-1 > 1:
+				print "d^%d/dz^%d(%s)/(%s) at z = %s" % (degrees[i]-1,degrees[i]-1,self.numerator, alpha_d, root)
+				self.querys.append("d^%d/dz^%d(%s)/(%s) at z = %s" % (degrees[i]-1,degrees[i]-1,self.numerator, alpha_d, root))
+			i += 1
 		self.set_requests(self.app_id)
 		super(IntegralCauchyFormula,self).run()
 		for wfr in self.wolfram_request:

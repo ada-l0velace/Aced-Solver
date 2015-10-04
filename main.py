@@ -9,7 +9,7 @@ if __name__ == "__main__":
 	acedSF = SimpleOperation('series representations (1/((w+i+3)-(-4i-2)))', APP_ID)
 	acedPI = PathIntegral('conjugate(z)', '-(3i-2)t^(2)-(3i-1)t-i-2', [-2,1], APP_ID)
 	acedDP = DerevativePoint('-(2i-2)(z-3i-4)^(3)+(3i-1)z^(2)', '2i+5', APP_ID)
-	acedICF = IntegralCauchyFormula('(2i+2)z^(2)-(4i-4)z', 'z+4i-1', APP_ID)
+	acedICF = IntegralCauchyFormula('(2i-4)z^2-(2i-3)z+i+2', '(z+3i+3)^2', APP_ID)
 	acedICF.run()
 
 	print acedICF
