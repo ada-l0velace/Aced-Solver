@@ -11,15 +11,16 @@ if __name__ == "__main__":
 	acedDP1 = Holomorph('-5cos(x)e^(-y)+5e^(x)sin(y)', '-5cos(y)e^(x)-5e^(-y)sin(x)', APP_ID)
 	acedDP2 = Holomorph('-9x^(2)y+3y^(3)+4x*cos(y)e^(x)-4y*e^(x)sin(y)','3*x^(3)-9*xy^(2)+4*y*cos(y)*e^(x)+4*x*e^(x)sin(y)', APP_ID)
 	acedDP3 = Holomorph('(4x*cos(x)*e^(-y)-4y*e^(-y)sin(x)-x^(2)+y^(2))','-4*y*cos(x)*e^(-y)-4*x*e^(-y)*sin(x)-2*xy', APP_ID)
-
+	
 	acedSF = SimpleOperation('series representations (1/((w+i+3)-(-4i-2)))', APP_ID)
 	acedPI = PathIntegral('conjugate(z)', '-(3i-2)t^(2)-(3i-1)t-i-2', [-2,1], APP_ID)
 	acedDP = DerivativePoint('-(2i-2)(z-3i-4)^(3)+(3i-1)z^(2)', '2i+5', APP_ID)
-	acedICF = IntegralCauchyFormula('5z^(2)-2iz', '(z^(2)+4z+5)(z+2)','-2i-1','2', APP_ID)
+	acedICF0 = IntegralCauchyFormula('5z^(2)-2iz', '(z^(2)+4z+5)(z+2)','-2i-1','2', APP_ID)
 
+	acedICF1 = IntegralCauchyFormula('-z^(2)-3z','(z+3i+1)^(2)(z+3i)','-3i-1', '4', APP_ID)
 	aux = [acedDP0, acedDP1, acedDP2, acedDP3]
 
-	ASR = AcedSolverRequests([acedICF])
+	ASR = AcedSolverRequests([acedICF0])
 	ASR.run()
 	#acedDP0.run()
 	#acedDP1.run()

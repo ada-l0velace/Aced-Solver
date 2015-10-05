@@ -233,7 +233,6 @@ class IntegralCauchyFormula(BaseAced):
 			i += 1
 
 	def extra_runs(self, splited_n):
-		self.reset_querys()
 		dicti = {}
 		dicti_rev = {}
 		not_splited = ""
@@ -243,32 +242,43 @@ class IntegralCauchyFormula(BaseAced):
 		splited_n[-1] = splited_n[-1].replace(' = 0','')
 		degrees = []
 		nr_d = []
-		if '^' in not_splited:
-			for i in range(len(splited_n)):
-				if ')^' in splited_n[i]:
-					nr_d.append(i)
-					degrees.append(int(re.sub('[!^]', '', splited_n[i].split('^')[1])))
 		
 		den_new = not_splited
+		n_den = []
 		
+		"""
 		for singularity in splited_n:
 			self.querys.append('simplify[%s]' % singularity)	
 		self.set_requests(self.app_id)
 		super(IntegralCauchyFormula,self).run()
-		n_den = []
+		
 		for wr in self.wolfram_request:
 			for pod in wr.get_pod():
 				i = 0
 				if pod.title == 'Results':
 					for subpod in pod.subpods:
 						if i == int(pod.numsubpods)-1:
+							print subpod.text
 							m = subpod.text.split(' ')
 							for z in m:
 								n_den.append(z)
 						i += 1
 				elif pod.title == 'Result':
 					n_den.append('(%s)' % pod.text)
+		"""
 		
+		for root in self.roots:
+			n_den.append('z -(%s)' % root)
+		#print splited_n
+		self.reset_querys()
+		for den in splited_n:
+			self.querys.append('Exponent[(%s),z]' % den)
+		self.set_requests(self.app_id)
+		super(IntegralCauchyFormula,self).run()
+		for wr in self.wolfram_request:		
+			for pod in wr.get_pod():
+				if pod.title == 'Result':
+					degrees.append(int(pod.text))
 		for i in range(len(n_den)):
 			dicti_rev[self.roots[i]] = n_den[i]
 		not_splited = ""
@@ -277,48 +287,71 @@ class IntegralCauchyFormula(BaseAced):
 		self.reset_querys()
 		i = 0
 		self.is_singularity_on_center()
+		self.reset_querys()
 		for root in self.roots_in_circunference:
 			den_new = not_splited
 			alpha_d = den_new.replace (dicti_rev[root],"(1)")
-			if i not in nr_d:
-				self.querys.append("(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
-			elif degrees[i]-1 == 0:
+			if degrees[i]-1 == 0:
 				self.querys.append("(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
 			elif degrees[i]-1 == 1:
-				print "d^/dz(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root)
+				#print "d^/dz(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root)
 				self.querys.append("d/dz(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
 			elif degrees[i]-1 > 1:
-				print "d^%d/dz^%d(%s)/(%s) at z = %s" % (degrees[i]-1,degrees[i]-1,self.numerator, alpha_d, root)
+				#print "d^%d/dz^%d(%s)/(%s) at z = %s" % (degrees[i]-1,degrees[i]-1,self.numerator, alpha_d, root)
 				self.querys.append("d^%d/dz^%d(%s)/(%s) at z = %s" % (degrees[i]-1,degrees[i]-1,self.numerator, alpha_d, root))
 			i += 1
 		self.set_requests(self.app_id)
 		super(IntegralCauchyFormula,self).run()
+		results = []
 		for wfr in self.wolfram_request:
 			for pod in wfr.get_pod():
 				self.value += "\n%s\n" % pod.title
 				for subpod in pod.subpods:
 					self.value += "%s\n%s\n" % (subpod.text, subpod.img.attrib['src'])
-		
-
+					if pod.title == 'Result':
+						results.append(subpod.text)
+		self.reset_querys()
+		query = ""
+		i = 0
+		operator = '+'
+		if len(results) > 1:
+			for result in results:
+				if i == 0:
+					operator = '('
+				else:
+					operator = ' + ('
+				query += operator + result + ')'
+				i += 1
+		self.querys.append(query)
+		self.set_requests(self.app_id)
+		super(IntegralCauchyFormula,self).run()
+		for wr in self.wolfram_request:		
+			for pod in wr.get_pod():
+				if pod.title == 'Result':
+					self.value += '\nFinal Result: %s = %s\n%s\n' % (query,pod.text,pod.img.attrib['src'])
 		
 
 	def run (self):
 		super(IntegralCauchyFormula,self).run()
 		sols = ['Complex solutions', 'Real solutions', 'Complex solution', 'Real solution']
-		splited_n = self.wolfram_request[0].get_pod()[0].text.split(') (')
-		for i in range(len(splited_n)-1):
+		splited_n = self.wolfram_request[0].get_pod()[0].text.split(' (')
+		z = 1
+		if (len(splited_n) % 2 == 0):
+			z = 0
+		for i in range(len(splited_n)-z):
 			if i == 0:
-				splited_n[i] += ')'
+				splited_n[i] += ''
 			else:
 				splited_n[i] = '(' + splited_n[i] + ')'
-		splited_n[-1] = '(' + splited_n[-1] 
+		if (len(splited_n) % 2 == 0):
+			splited_n[-1] = '(' + splited_n[-1]
 		for pod in self.wolfram_request[0].get_pod():
 			if pod.title in sols:
 				self.value += "\n%s\n" % pod.title
 				for subpod in pod.subpods:
 					self.roots.append(subpod.text.split(' = ')[1])
 					self.value += "%s\n%s\n" % (subpod.text, subpod.img.attrib['src'])
-		self.roots = list(reversed(self.roots))
+		#self.roots = list(reversed(self.roots))
 		self.extra_runs(splited_n)
 		#self.value = self.wolfram_request[0].get_pod()[4].text
 		self.answer = True
