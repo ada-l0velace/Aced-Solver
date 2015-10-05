@@ -248,8 +248,10 @@ class IntegralCauchyFormula(BaseAced):
 		n_den = []
 		n_den_aux = []
 		self.reset_querys()
+		simplify = False
 		for singularity in splited_n:
 			if 'z^' in singularity:
+				simplify = True
 				self.querys.append('simplify[%s]' % singularity)
 			else:
 				n_den_aux.append(singularity)
@@ -269,10 +271,12 @@ class IntegralCauchyFormula(BaseAced):
 				elif pod.title == 'Result':
 					n_den.append('(%s)' % pod.text)
 		n_den += n_den_aux
-		"""
-		for root in self.roots:
-			n_den.append('z -(%s)' % root)
-		"""
+		print n_den
+		if simplify:
+			n_den = []
+			for root in self.roots:
+				n_den.append('(z -(%s))' % root)
+		print n_den
 		#print splited_n
 		self.reset_querys()
 		for den in n_den:
@@ -364,7 +368,7 @@ class IntegralCauchyFormula(BaseAced):
 					else:		
 						self.roots.append(subpod.text.split(' = ')[1])
 					self.value += "%s\n%s\n" % (subpod.text, subpod.img.attrib['src'])
-
+		print self.roots
 		#self.roots = list(reversed(self.roots))
 		self.extra_runs(splited_n)
 		#self.value = self.wolfram_request[0].get_pod()[4].text
