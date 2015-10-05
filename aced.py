@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from abc import ABCMeta, abstractmethod
 from w_requests import WolframRequests
 from prettytable import PrettyTable
@@ -176,7 +177,7 @@ class IntegralCauchyFormula(BaseAced):
 		self.denominator = denominator
 		self.numerator = numerator
 		self.roots = []
-		self.querys = ["%s = 0" % (denominator)]
+		self.querys = ["Solve[%s = 0]" % (denominator)]
 		self.set_requests(app_id)
 		self.answer = False
 		self.value = ""
@@ -245,10 +246,13 @@ class IntegralCauchyFormula(BaseAced):
 		
 		den_new = not_splited
 		n_den = []
-		
-		"""
+		n_den_aux = []
+		self.reset_querys()
 		for singularity in splited_n:
-			self.querys.append('simplify[%s]' % singularity)	
+			if 'z^' in singularity:
+				self.querys.append('simplify[%s]' % singularity)
+			else:
+				n_den_aux.append(singularity)
 		self.set_requests(self.app_id)
 		super(IntegralCauchyFormula,self).run()
 		
@@ -258,20 +262,20 @@ class IntegralCauchyFormula(BaseAced):
 				if pod.title == 'Results':
 					for subpod in pod.subpods:
 						if i == int(pod.numsubpods)-1:
-							print subpod.text
 							m = subpod.text.split(' ')
 							for z in m:
 								n_den.append(z)
 						i += 1
 				elif pod.title == 'Result':
 					n_den.append('(%s)' % pod.text)
+		n_den += n_den_aux
 		"""
-		
 		for root in self.roots:
 			n_den.append('z -(%s)' % root)
+		"""
 		#print splited_n
 		self.reset_querys()
-		for den in splited_n:
+		for den in n_den:
 			self.querys.append('Exponent[(%s),z]' % den)
 		self.set_requests(self.app_id)
 		super(IntegralCauchyFormula,self).run()
@@ -322,19 +326,22 @@ class IntegralCauchyFormula(BaseAced):
 					operator = ' + ('
 				query += operator + result + ')'
 				i += 1
-		self.querys.append(query)
-		self.set_requests(self.app_id)
-		super(IntegralCauchyFormula,self).run()
-		for wr in self.wolfram_request:		
-			for pod in wr.get_pod():
-				if pod.title == 'Result':
-					self.value += '\nFinal Result: %s = %s\n%s\n' % (query,pod.text,pod.img.attrib['src'])
-		
+			self.querys.append(query)
+			self.set_requests(self.app_id)
+			super(IntegralCauchyFormula,self).run()
+			for wr in self.wolfram_request:		
+				for pod in wr.get_pod():
+					if pod.title == 'Result':
+						self.value += '\nFinal Result: %s = %s\n%s\n' % (query,pod.text,pod.img.attrib['src'])
+			
 
 	def run (self):
 		super(IntegralCauchyFormula,self).run()
-		sols = ['Complex solutions', 'Real solutions', 'Complex solution', 'Real solution']
-		splited_n = self.wolfram_request[0].get_pod()[0].text.split(' (')
+		sols = ['Result', 'Results']
+		aux_st = re.sub('[!\]\[]', '', self.wolfram_request[0].get_pod()[0].text)
+		aux_st = aux_st.replace('solve ', '')
+		splited_n = aux_st.split(' (') 
+		
 		z = 1
 		if (len(splited_n) % 2 == 0):
 			z = 0
@@ -342,15 +349,22 @@ class IntegralCauchyFormula(BaseAced):
 			if i == 0:
 				splited_n[i] += ''
 			else:
-				splited_n[i] = '(' + splited_n[i] + ')'
-		if (len(splited_n) % 2 == 0):
+				splited_n[i] = '(' + splited_n[i]
+		if (len(splited_n) % 2 != 0 and len(splited_n) != 1):
 			splited_n[-1] = '(' + splited_n[-1]
+
 		for pod in self.wolfram_request[0].get_pod():
 			if pod.title in sols:
 				self.value += "\n%s\n" % pod.title
 				for subpod in pod.subpods:
-					self.roots.append(subpod.text.split(' = ')[1])
+					if (u'±' in subpod.text):
+						aux = subpod.text.replace(u'±','-')
+						self.roots.append(aux.split(' = ')[1])
+						self.roots.append(subpod.text.replace(u'±','').split(' = ')[1])
+					else:		
+						self.roots.append(subpod.text.split(' = ')[1])
 					self.value += "%s\n%s\n" % (subpod.text, subpod.img.attrib['src'])
+
 		#self.roots = list(reversed(self.roots))
 		self.extra_runs(splited_n)
 		#self.value = self.wolfram_request[0].get_pod()[4].text

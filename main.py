@@ -1,7 +1,7 @@
 from aced import Holomorph, SimpleOperation, PathIntegral, DerivativePoint, IntegralCauchyFormula
 from w_requests import AcedSolverRequests
 
-APP_ID = '#'
+APP_ID = ''
 
 if __name__ == "__main__":
 	#acedH = Holomorph('e^(x)cos(y)+ie^(x)sin(y)', APP_ID)
@@ -16,11 +16,12 @@ if __name__ == "__main__":
 	acedPI = PathIntegral('conjugate(z)', '-(3i-2)t^(2)-(3i-1)t-i-2', [-2,1], APP_ID)
 	acedDP = DerivativePoint('-(2i-2)(z-3i-4)^(3)+(3i-1)z^(2)', '2i+5', APP_ID)
 	acedICF0 = IntegralCauchyFormula('5z^(2)-2iz', '(z^(2)+4z+5)(z+2)','-2i-1','2', APP_ID)
-
 	acedICF1 = IntegralCauchyFormula('-z^(2)-3z','(z+3i+1)^(2)(z+3i)','-3i-1', '4', APP_ID)
+	acedICF2 = IntegralCauchyFormula('z+5i','(z+2i)(z-2i)(z-1)','3i-1', '2', APP_ID)
+	acedICF3 = IntegralCauchyFormula('(2i+2)z^(2) - (4i-4)z','z+4i-1','0', '5', APP_ID)
 	aux = [acedDP0, acedDP1, acedDP2, acedDP3]
 
-	ASR = AcedSolverRequests([acedICF0])
+	ASR = AcedSolverRequests([acedICF0, acedICF1, acedICF2, acedICF3])
 	ASR.run()
 	#acedDP0.run()
 	#acedDP1.run()
