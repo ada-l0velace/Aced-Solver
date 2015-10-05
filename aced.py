@@ -184,7 +184,7 @@ class IntegralCauchyFormula(BaseAced):
 
 	def __str__(self):
 		if(self.answer):
-			return unicodedata.normalize('NFD', self.value).encode('ascii', 'ignore') 
+			return unicodedata.normalize('NFD', unicode(self.value)).encode('ascii', 'ignore') 
 		return "An error ocurred"
 
 	def reset_querys(self):
@@ -271,12 +271,10 @@ class IntegralCauchyFormula(BaseAced):
 				elif pod.title == 'Result':
 					n_den.append('(%s)' % pod.text)
 		n_den += n_den_aux
-		print n_den
 		if simplify:
 			n_den = []
 			for root in self.roots:
 				n_den.append('(z -(%s))' % root)
-		print n_den
 		#print splited_n
 		self.reset_querys()
 		for den in n_den:
@@ -296,17 +294,18 @@ class IntegralCauchyFormula(BaseAced):
 		i = 0
 		self.is_singularity_on_center()
 		self.reset_querys()
-		for root in self.roots_in_circunference:
-			den_new = not_splited
-			alpha_d = den_new.replace (dicti_rev[root],"(1)")
-			if degrees[i]-1 == 0:
-				self.querys.append("(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
-			elif degrees[i]-1 == 1:
-				#print "d^/dz(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root)
-				self.querys.append("d/dz(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
-			elif degrees[i]-1 > 1:
-				#print "d^%d/dz^%d(%s)/(%s) at z = %s" % (degrees[i]-1,degrees[i]-1,self.numerator, alpha_d, root)
-				self.querys.append("d^%d/dz^%d(%s)/(%s) at z = %s" % (degrees[i]-1,degrees[i]-1,self.numerator, alpha_d, root))
+		for root in self.roots:
+			if root in self.roots_in_circunference:
+				den_new = not_splited
+				alpha_d = den_new.replace (dicti_rev[root],"(1)")
+				if degrees[i]-1 == 0:
+					self.querys.append("(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
+				elif degrees[i]-1 == 1:
+					#print "d^/dz(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root)
+					self.querys.append("d/dz(%s)/(%s) at z = %s" % (self.numerator, alpha_d, root))
+				elif degrees[i]-1 > 1:
+					#print "d^%d/dz^%d(%s)/(%s) at z = %s" % (degrees[i]-1,degrees[i]-1,self.numerator, alpha_d, root)
+					self.querys.append("d^%d/dz^%d(%s)/(%s) at z = %s" % (degrees[i]-1,degrees[i]-1,self.numerator, alpha_d, root))
 			i += 1
 		self.set_requests(self.app_id)
 		super(IntegralCauchyFormula,self).run()
@@ -368,7 +367,6 @@ class IntegralCauchyFormula(BaseAced):
 					else:		
 						self.roots.append(subpod.text.split(' = ')[1])
 					self.value += "%s\n%s\n" % (subpod.text, subpod.img.attrib['src'])
-		print self.roots
 		#self.roots = list(reversed(self.roots))
 		self.extra_runs(splited_n)
 		#self.value = self.wolfram_request[0].get_pod()[4].text

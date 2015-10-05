@@ -20,9 +20,11 @@ if __name__ == "__main__":
 	acedICF2 = IntegralCauchyFormula('z+5i','(z+2i)(z-2i)(z-1)','3i-1', '2', APP_ID)
 	acedICF3 = IntegralCauchyFormula('(2i+2)z^(2) - (4i-4)z','z+4i-1','0', '5', APP_ID)
 	acedICF4 = IntegralCauchyFormula('(-3iz^(2)-4z)','(z^(2)+8z+17)(z+3)','-3i-2', '4', APP_ID)
+	acedICF5 = IntegralCauchyFormula('(3iz^(2)+5iz)','(z+i)(z+i-1)^(2)','-4i+3', '4', APP_ID)
+	
 	aux = [acedDP0, acedDP1, acedDP2, acedDP3]
 
-	ASR = AcedSolverRequests([acedICF0, acedICF1, acedICF2, acedICF3, acedICF4])
+	ASR = AcedSolverRequests([acedICF0, acedICF1, acedICF2, acedICF3, acedICF4, acedICF5])
 	ASR.run()
 	#acedDP0.run()
 	#acedDP1.run()
