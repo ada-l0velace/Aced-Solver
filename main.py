@@ -15,11 +15,11 @@ if __name__ == "__main__":
 	acedSF = SimpleOperation('series representations (1/((w+i+3)-(-4i-2)))', APP_ID)
 	acedPI = PathIntegral('conjugate(z)', '-(3i-2)t^(2)-(3i-1)t-i-2', [-2,1], APP_ID)
 	acedDP = DerivativePoint('-(2i-2)(z-3i-4)^(3)+(3i-1)z^(2)', '2i+5', APP_ID)
-	acedICF = IntegralCauchyFormula('(-4z^2-(2i+3)z+e^(pi*z))', '(z+i)', APP_ID)
+	acedICF = IntegralCauchyFormula('5z^(2)-2iz', '(z^(2)+4z+5)(z+2)','-2i-1','2', APP_ID)
 
+	aux = [acedDP0, acedDP1, acedDP2, acedDP3]
 
-
-	ASR = AcedSolverRequests([acedDP0, acedDP1, acedDP2, acedDP3])
+	ASR = AcedSolverRequests([acedICF])
 	ASR.run()
 	#acedDP0.run()
 	#acedDP1.run()

@@ -168,8 +168,10 @@ class IntegralCauchyFormula(BaseAced):
 	Calculates a integral with cauchy formula
 	"""
 
-	def __init__(self, numerator, denominator, app_id):
+	def __init__(self, numerator, denominator,center, ray, app_id):
 		#"d/dz(-(2i-2)(z-3i-4)^(3)+(3i-1)z^(2)) at z =2i+5"
+		self.center = center
+		self.ray = ray
 		self.app_id = app_id
 		self.denominator = denominator
 		self.numerator = numerator
@@ -184,9 +186,54 @@ class IntegralCauchyFormula(BaseAced):
 			return unicodedata.normalize('NFD', self.value).encode('ascii', 'ignore') 
 		return "An error ocurred"
 
-	def extra_runs(self, splited_n):
+	def reset_querys(self):
 		self.querys = []
 		self.wolfram_request = []
+
+	def is_singularity_on_center(self):
+		self.reset_querys()
+		for singularity in self.roots:
+			self.querys.append('Re(%s)' % singularity)
+			self.querys.append('Im(%s)' % singularity)
+		self.querys.append('Re(%s)' % self.center)
+		self.querys.append('Im(%s)' % self.center)
+		self.set_requests(self.app_id)
+		super(IntegralCauchyFormula, self).run()
+		i = 0
+		z = 0
+		points = []
+		for wr in self.wolfram_request:		
+			for pod in wr.get_pod():
+				if pod.title == 'Result':
+					points.append([])
+					if i % 2 == 0 and i != 0:
+						z += 1
+					points[z].append(pod.text)
+					i += 1
+		points = points[:i/2]
+		center = points[-1]
+		points.pop()
+		self.reset_querys()
+		for point in points:
+			centerX = center[0]
+			centerY = center[1]
+			pointX = point[0]
+			pointY = point[1]
+			equation = "((%s) - (%s))^2 + ((%s) - (%s))^2 < (%s)^2" % (pointX, centerX, pointY, centerY, self.ray)
+			self.querys.append(equation)
+		self.set_requests(self.app_id)
+		super(IntegralCauchyFormula, self).run()
+		i = 0
+		self.roots_in_circunference = []
+		for wr in self.wolfram_request:		
+			for pod in wr.get_pod():
+				if pod.text == 'True':
+					self.roots_in_circunference.append(self.roots[i])
+
+			i += 1
+
+	def extra_runs(self, splited_n):
+		self.reset_querys()
 		dicti = {}
 		dicti_rev = {}
 		not_splited = ""
@@ -201,14 +248,36 @@ class IntegralCauchyFormula(BaseAced):
 				if ')^' in splited_n[i]:
 					nr_d.append(i)
 					degrees.append(int(re.sub('[!^]', '', splited_n[i].split('^')[1])))
-					print degrees[i]
-		for i in range(len(splited_n)):
-			dicti[splited_n[i]] = self.roots[i]
-			dicti_rev[self.roots[i]] = splited_n[i]
+		
 		den_new = not_splited
+		
+		for singularity in splited_n:
+			self.querys.append('simplify[%s]' % singularity)	
+		self.set_requests(self.app_id)
+		super(IntegralCauchyFormula,self).run()
+		n_den = []
+		for wr in self.wolfram_request:
+			for pod in wr.get_pod():
+				i = 0
+				if pod.title == 'Results':
+					for subpod in pod.subpods:
+						if i == int(pod.numsubpods)-1:
+							m = subpod.text.split(' ')
+							for z in m:
+								n_den.append(z)
+						i += 1
+				elif pod.title == 'Result':
+					n_den.append('(%s)' % pod.text)
+		
+		for i in range(len(n_den)):
+			dicti_rev[self.roots[i]] = n_den[i]
+		not_splited = ""
+		for s in n_den:
+			not_splited += s
+		self.reset_querys()
 		i = 0
-		for root in self.roots:
-
+		self.is_singularity_on_center()
+		for root in self.roots_in_circunference:
 			den_new = not_splited
 			alpha_d = den_new.replace (dicti_rev[root],"(1)")
 			if i not in nr_d:
@@ -229,6 +298,8 @@ class IntegralCauchyFormula(BaseAced):
 				self.value += "\n%s\n" % pod.title
 				for subpod in pod.subpods:
 					self.value += "%s\n%s\n" % (subpod.text, subpod.img.attrib['src'])
+		
+
 		
 
 	def run (self):
