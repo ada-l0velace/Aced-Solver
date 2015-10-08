@@ -10,3 +10,5 @@ pip install --upgrade pip
 pip install -R requirements.txt
 python main.py
 ```
+
+Future Versions will use Django with https://www.mathjax.org/ and leave wolfram API behind to use sympy python package
