@@ -83,8 +83,8 @@ class Holomorph(BaseAced):
 		wr_n = 0
 		for wr in self.wolfram_request:
 			for pod in wr.get_pod():
-				if pod.title == 'Alternate forms' or pod.title == 'Alternate form':
-					dd.append(pod.text)
+				if pod.title == 'Derivative':
+					dd.append(pod.text.split(' = ')[1])
 		self.wolfram_request = []
 		self.querys = ["(%s) == (%s)" % (dd[0],dd[3]), "(-1)(%s) == (%s)" % (dd[1],dd[2])]
 		self.set_requests(self.app_id)
@@ -98,8 +98,7 @@ class Holomorph(BaseAced):
 					break
 			if not f:
 				results.append('False')
-		if (results[0] == 'True' and results[1] == 'True'):
-			self.answer = True	
+		self.answer = results[0] == 'True' and results[1] == 'True'	
 		self.matrix_r([[dd[0],dd[1]],[dd[2],dd[3]]])
 		
 		
