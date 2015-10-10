@@ -1,4 +1,3 @@
-import wolframalpha
 from threading import Thread, Lock
 from sympy.parsing.sympy_parser import parse_expr
 from sympy.parsing.sympy_parser import standard_transformations, implicit_multiplication_application, auto_number, convert_xor
