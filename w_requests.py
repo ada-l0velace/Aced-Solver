@@ -1,31 +1,37 @@
 import wolframalpha
 from threading import Thread, Lock
+from sympy.parsing.sympy_parser import parse_expr
+from sympy.parsing.sympy_parser import standard_transformations, implicit_multiplication_application, auto_number, convert_xor
+transformations = (standard_transformations +(implicit_multiplication_application,convert_xor, ))
 
-class WolframRequests():
+
+class SymPyRequests():
 	"""
-	Handles all API Wolfram Querys
+	Handles all SymPy Querys
 	"""
 
-	def __init__(self, app_id):
-		self.client = wolframalpha.Client(app_id)
-		self.query = ""
-		self.response = ""
+	def __init__(self):
+		self.args = []
+		self.query = None
+		self.response = None
 		self.t = None
+		self.function = None
+
+	def get_response(self):
+		return unicodeself.response
 
 	def request(self):
-		self.response = self.client.query(self.query)
+		self.response = self.function(*self.args)
 
-	def get_pod(self):
-		return self.response.pods
-
-	def run (self, data):
-		self.query = data
+	def run (self, query, function, args):
+		self.query = query
+		self.function = function
+		self.args = args
 		self.t = Thread(target=self.request)
 		self.t.start()
 
 	def join(self):
 		self.t.join()
-
 
 class AcedSolverRequests():
 	"""
@@ -40,8 +46,8 @@ class AcedSolverRequests():
 	def request(self, client):
 		client.run()
 		with self.mutex:
-			print '--------------------------------------------------------------------------'
 			print client
+			print '------------------------------------------------------------------------------------'
 	def get_pod(self):
 		return self.response.pods
 
