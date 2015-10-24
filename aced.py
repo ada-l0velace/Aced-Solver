@@ -4,12 +4,15 @@ from sympy import sympify, Derivative, symbols, init_printing, pprint, Matrix, I
 from w_requests import SymPyRequests
 from prettytable import PrettyTable
 import unicodedata
+from sympy.calculus.singularities import singularities
 from sympy.parsing.sympy_parser import parse_expr
 from sympy.parsing.sympy_parser import standard_transformations, implicit_multiplication_application, convert_xor, auto_number, rationalize
 transformations = (standard_transformations +(implicit_multiplication_application,convert_xor, rationalize,))
 x, y, z = symbols('x y z')
+var('A:D')
 t = symbols('t', real=True)
 init_printing(use_unicode=True)
+from sympy import limit, Limit, Eq, apart, pi, N
 class bcolors:
 	"""
 	Class to use Colors in terminal
@@ -130,7 +133,7 @@ class PathIntegral(BaseAced):
 		self.t =  self.func
 		#self.t(t) = self.func
 		self.dt = Derivative(self.path, symbols('t'), 1)		
-		self.querys = self.querys = [[self.dt , self.dt.doit, []], [self.t, self.t.subs, [z,self.path.replace('t', symbols('t',real=True))]]]
+		self.querys = [[self.dt , self.dt.doit, []], [self.t, self.t.subs, [z,self.path.replace('t', symbols('t',real=True))]]]
 		self.range = irange
 		self.set_requests()
 		self.answer = False
@@ -148,17 +151,72 @@ class PathIntegral(BaseAced):
 		self.value = self.query.doit()
 		self.answer = True
 		
+class SingularitiesClassification(BaseAced):
+	"""
+	"""
+
+	def __init__(self, func):
+		self.func = self.parse_expression(func)
+		self.numerator = fraction(self.func)[0]
+		self.denominator = fraction(self.func)[1]
+		self.singularities = solve(self.denominator, z)
+		self.querys = []
+		self.factors = []
+		self.limits_e = []
+		self.limits_a = []
+		self.degrees = []
+		self.singularity_l = []
+		for singularity in self.singularities:
+			self.factors.append(z - singularity)
+		i = 0
+		self.limit = 0
+		for factor in self.factors:
+			v = 0
+			self.limit = 0
+			while True:
+				self.limit = limit(factor**v * self.func, z, self.singularities[i])
+				if self.limit == 0:
+					v -= 1
+				elif self.limit == oo:
+					v += 1
+				else:
+					self.limits_e.append((Limit(parse_expr(str(factor**v)+" * "+ str(self.func), evaluate=False), z, self.singularities[i])))
+					self.limits_a.append(self.limit)
+					self.degrees.append(v)
+					self.singularity_l.append(self.singularities[i])
+					break
+
+			i += 1
+
+	def __str__(self):
+		for i in range(len(self.limits_e)):
+			print bcolors.BOLD
+			print pretty(Eq(self.limits_e[i],self.limits_a[i]))
+			print bcolors.ENDC
+			print bcolors.OKGREEN
+			if self.degrees[i] == 0:
+				self.degrees[i] = '0 (removable)'
+			print "The singularity %s has order %s" % (pretty(self.singularity_l[i]),pretty(self.degrees[i])) 
+			print bcolors.ENDC
+			print bcolors.ENDC
+				
+		return ""
+	def run (self):
+		super(SingularitiesClassification,self).run()
 
 class IntegralCauchyFormula(BaseAced):
 	"""
 	Calculates a integral with cauchy formula
 	"""
 
-	def __init__(self, numerator, denominator,center, ray):
+	def __init__(self, numerator, denominator, center, ray, semi_circle = False, constant = 1/(2*pi *I)):
 		#"d/dz(-(2i-2)(z-3i-4)^(3)+(3i-1)z^(2)) at z =2i+5"
+		self.constant = constant
+		self.semi_circle = semi_circle
 		self.center = self.parse_expression(center)
 		self.ray = self.parse_expression(ray)
 		self.denominator =  self.parse_expression(denominator)
+		self.save_den = self.parse_expression(denominator)
 		self.denominators = str(self.denominator).split(')*(')
 		self.numerator =  self.parse_expression(numerator)
 		self.singularities = solve(self.denominator, z)
@@ -179,10 +237,17 @@ class IntegralCauchyFormula(BaseAced):
 		if self.infor:
 			self.factors += self.denominators
 		i = 0
+		si = 0
 		for singularity in self.singularities:
-			if self.inside_circunferences(singularity):
-				function = self.numerator / self.denominator
-				function = function.replace(self.factors[i],1)
+			if self.inside_circunferences(singularity, self.semi_circle):
+				si += 1
+		for singularity in self.singularities:
+			if self.inside_circunferences(singularity, self.semi_circle): 
+				if len(self.singularities) > si:
+					function = self.numerator / self.denominator.replace(self.factors[i],1)
+				else:
+					function = self.numerator / self.save_den.replace(self.factors[i],1)
+				#print pretty(function), '|', pretty(self.factors[i]), '|', singularity
 				a = [function, Derivative(function,z,degree(self.factors[i])-1).doit().subs, [z,singularity]]
 				self.querys.append(a)
 			i += 1
@@ -193,7 +258,7 @@ class IntegralCauchyFormula(BaseAced):
 	def __str__(self):
 		if(self.answer):
 			print bcolors.BOLD
-			print pretty (Integral(self.numerator / self.denominator, [z, Function('|%s| = %s' % (str(z - self.center), str(self.ray))), oo]))
+			print pretty (Integral(self.numerator / self.save_den, [z, Function('|%s| = %s' % (str(z - self.center), str(self.ray))), oo]))
 			print bcolors.ENDC
 			print '\nResult: '
 			print bcolors.OKGREEN
@@ -224,7 +289,12 @@ class IntegralCauchyFormula(BaseAced):
 
 		return False
 
-	def inside_circunferences(self, singularity):
+	def inside_circunferences(self, singularity, semi_circle):
+		if semi_circle and im(singularity) < 0:
+			return False
+		#print singularity
+		#print (re(singularity) - re(self.center))**2, (im(singularity) - im(self.center))**2, self.ray ** 2
+		#print (re(singularity) - re(self.center))**2 + (im(singularity) - im(self.center))**2 < self.ray ** 2
 		return (re(singularity) - re(self.center))**2 + (im(singularity) - im(self.center))**2 < self.ray ** 2
 
 	def run (self):
@@ -232,8 +302,10 @@ class IntegralCauchyFormula(BaseAced):
 		self.value = self.parse_expression('0') 
 		
 		for sr in self.sympy_request:
+			#print sr.response
+			#print simplify(sr.response)
 			self.value += sr.response
-		self.value = simplify(self.value)
+		self.value = self.constant * simplify(self.value) * 2*pi*I
 		self.answer = True
 
 class DerivativePoint(BaseAced):
@@ -259,3 +331,15 @@ class DerivativePoint(BaseAced):
 		self.value = self.wolfram_request[0].get_pod()[1].text
 		self.answer = True
 
+class PartialFractions(BaseAced):
+	"""
+	"""
+
+	def __init__(self, func):
+		self.func = self.parse_expression(func)
+		self.querys = []
+		print pretty(apart(self.func))
+	
+	def run (self):
+		super(PartialFractions,self).run()
+		
